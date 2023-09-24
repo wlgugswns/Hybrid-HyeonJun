@@ -1,0 +1,146 @@
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>하이브리드 앱 3주차 과제</title>
+        <style>
+            .container {
+            display: flex;
+            align-items: flex-start;
+        }
+
+        #area2 {
+            margin-right: 10px; 
+        }
+
+        #area2 div {
+            margin-bottom: 10px;
+        }
+
+        #profileArea {
+            display: flex;
+            align-items: center;
+            margin-right: 20px;
+        }
+
+        #profileImage {
+            width: 100px;
+            height: 100px;
+        }
+        </style>
+    </head>
+    <body>
+        <div id="area1">
+            <div id="profileArea">
+                <img id="profileImage" src="" alt="프로필 이미지">
+                <div id="profileText"></div>
+            </div>
+            <input type="text" id="userId" placeholder="아이디">
+            <button onclick="login()">로그인</button>
+        </div>
+        <hr>
+        <div class="container">
+            <div id="area2">
+                <div>
+                    <button id="button1" onclick="displayContent(1)">버튼 1</button>
+                </div>
+                <div>
+                    <button id="button2" onclick="displayContent(2)">버튼 2</button>
+                </div>
+                <div>
+                    <button onclick="moveContent()">버튼 3</button>
+                </div>
+            </div>
+            <div id="area3">
+                <span id="button3Content"></span>
+            </div>
+        </div>
+
+        <script>
+            let loggedIn = false;
+            const myUniqueID = "wlguswns";
+
+            let userData = {
+                [myUniqueID]: {
+                    "nickname": "지현준",
+                    "profilePicture": "https://upload.wikimedia.org/wikipedia/ko/4/4a/%EC%8B%A0%EC%A7%B1%EA%B5%AC.png"
+                }
+            };
+            let contentInButton1 = "VR게임 앱학과 20학번 지현준입니다.";
+            let contentInButton2 = "이은석 교수님은 언제나 유익한 수업을 진행하십니다.";
+            let contentInButton3 = "";
+
+            let lastClickedButton = null;
+
+            function login() {
+                const userId = document.getElementById("userId").value;
+                if (userId === myUniqueID) {
+                    const user = userData[userId];
+                    loggedIn = true;
+
+                    document.getElementById("profileText").innerText = `${user.nickname}님의 프로필`;
+                    document.getElementById("profileImage").src = user.profilePicture;
+                } else {
+                    alert("유효한 고유 아이디를 입력하세요.");
+                }
+            }
+
+            function displayContent(buttonNumber) {
+                if (!loggedIn) {
+                    alert("로그인이 필요합니다.");
+                    return;
+                }
+
+                const button1 = document.getElementById("button1");
+                const button2 = document.getElementById("button2");
+                const button3Content = document.getElementById("button3Content");
+
+                if (buttonNumber === 1) {
+                    if (contentInButton1 !== "") {
+                        button3Content.innerText = contentInButton1;
+                        contentInButton1 = "";
+                        button1.querySelector(".contentButton").innerText = "";
+                        lastClickedButton = button1;
+                    }
+                } else if (buttonNumber === 2) {
+                    if (contentInButton2 !== "") {
+                        button3Content.innerText = contentInButton2;
+                        contentInButton2 = "";
+                        button2.querySelector(".contentButton").innerText = "";
+                        lastClickedButton = button2;
+                    }
+                }
+            }
+
+            function moveContent() {
+                if (!loggedIn) {
+                    alert("로그인이 필요합니다.");
+                    return;
+                }
+
+                const button3Content = document.getElementById("button3Content");
+
+                if (lastClickedButton !== null) {
+                    const lastClickedContentButton = lastClickedButton.querySelector(".contentButton");
+                    if (lastClickedContentButton !== null && lastClickedContentButton.innerText === "") {
+                        const lastClickedContent = lastClickedButton.querySelector(".contentButton").innerText;
+                        if (lastClickedContent !== "") {
+                            if (button3Content.innerText === "") {
+                                button3Content.innerText = lastClickedContent;
+                                lastClickedButton.querySelector(".contentButton").innerText = "";
+                                if (lastClickedButton === document.getElementById("button1")) {
+                                    contentInButton3 = contentInButton1;
+                                    contentInButton1 = "";
+                                } else if (lastClickedButton === document.getElementById("button2")) {
+                                    contentInButton3 = contentInButton2;
+                                    contentInButton2 = "";
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        </script>
+    </body>
+    </html>
