@@ -1,0 +1,287 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <style>
+    canvas {
+      border: 2px solid black;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="midtermExam" width="1024" height="768"></canvas>
+  <script>
+    const canvas = document.getElementById('midtermExam');
+    const ctx = canvas.getContext('2d');
+
+    var mouseX = 0;
+    var mouseY = 0;
+    var player = [];
+    var obstacles = [];
+    var score = 3;
+    var startTime = Date.now();
+    var playerCount = 3;
+
+    class PlayerBodyObject {
+      constructor() {
+        this.PlayerPosX = 100;
+        this.PlayerPosY = 100;
+        this.dirX = 0;
+        this.dirY = 0;
+        this.speed = 5;
+        this.size = 17;
+        this.color = 'green';
+      }
+      UpdatePosition(prevX, prevY) {
+        this.dirX = prevX - this.PlayerPosX;
+        this.dirY = prevY - this.PlayerPosY;
+
+        let scalar = Math.sqrt(this.dirX * this.dirX + this.dirY * this.dirY);
+
+        this.dirX /= scalar;
+        this.dirY /= scalar;
+
+        this.PlayerPosX = prevX - this.dirX * this.size * 2;
+        this.PlayerPosY = prevY - this.dirY * this.size * 2;
+      }
+      draw() {
+        // 원 그리기
+        ctx.beginPath();
+        ctx.arc(this.PlayerPosX, this.PlayerPosY, this.size, 0, 2 * Math.PI);
+        ctx.fillStyle = this.color;
+        ctx.fill();
+      }
+    }
+
+    // 클래스
+    class Obstacle {
+      constructor(x, y, speed, shape, direction) {
+        this.x = x;
+        this.y = y;
+        this.speed = speed;
+        this.size = 20;
+        this.color = 'red';
+        this.shape = shape;
+        this.rotation = 0;
+        this.direction = direction;
+      }
+      // 충돌 검사 함수
+      checkCollisionWithObstacle(otherObstacle) {
+        const dx = this.x - otherObstacle.x;
+        const dy = this.y - otherObstacle.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+        return distance < this.size + otherObstacle.size;
+      }
+
+      // 이동 방향 반전 함수
+      reverseDirection() {
+        if (this.direction === 'right') {
+          this.direction = 'left';
+        } else if (this.direction === 'left') {
+          this.direction = 'right';
+        } else if (this.direction === 'up') {
+          this.direction = 'down';
+        } else if (this.direction === 'down') {
+          this.direction = 'up';
+        }
+      }
+
+      update() {
+        if (this.direction === 'right') {
+        this.x += this.speed;
+        } else if (this.direction === 'left') {
+        this.x -= this.speed;
+        } else if (this.direction === 'up') {
+        this.y -= this.speed;
+        } else if (this.direction === 'down') {
+        this.y += this.speed;
+        }
+        this.rotation += 2;
+
+        for (let i = 0; i < obstacles.length; i++) {
+          if (this !== obstacles[i] && this.checkCollisionWithObstacle(obstacles[i])) {
+            this.reverseDirection(); // 충돌 시 이동 방향 반전
+            obstacles[i].reverseDirection(); // 다른 장애물도 이동 방향 반전
+          }
+        }
+      }
+
+      draw() {
+        ctx.save();
+        ctx.translate(this.x, this.y);
+        ctx.rotate((this.rotation * Math.PI) / 180);
+        ctx.beginPath();
+        if (this.shape === 'circle') {
+          ctx.arc(0, 0, this.size, 0, 2 * Math.PI);
+        } else if (this.shape === 'triangle') {
+          ctx.moveTo(0, -this.size);
+          ctx.lineTo(-this.size, this.size);
+          ctx.lineTo(this.size, this.size);
+        } else if (this.shape === 'square') {
+          ctx.rect(-this.size, -this.size, 2 * this.size, 2 * this.size);
+        }
+        ctx.fillStyle = this.color;
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    class Food {
+        constructor() {
+            this.size = 10;
+            this.color = 'blue';
+            this.generateFood(); // 먹이 생성
+        }
+
+        generateFood() {
+            this.x = Math.random() * (canvas.width - this.size * 2) + this.size; // 캔버스 내에서 랜덤한 위치에 먹이 생성
+            this.y = Math.random() * (canvas.height - this.size * 2) + this.size;
+        }
+
+        draw() {
+            ctx.beginPath();
+            ctx.arc(this.x, this.y, this.size, 0, 2 * Math.PI);
+            ctx.fillStyle = this.color;
+            ctx.fill();
+        }
+    }
+
+    // 실행 코드
+    document.addEventListener('mousemove', onMousemove);
+
+    // 초기에 3개의 원을 추가하고 간격 조절
+    for (let i = 0; i < 3; i++) {
+      player.push(new PlayerBodyObject());
+      player[i].PlayerPosX = 100 + i * (player[i].size * 2);
+    }
+
+    // 게임 루프
+    setInterval(gameLoop, 1000 / 60);
+
+
+    // 함수
+    function gameLoop() {
+      // Canvas 지우기
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      // 먹이 그리기
+      food.draw();
+
+      // 원들에 대한 충돌 검사 및 처리
+      for (let i = 0; i < player.length; i++) {
+        if (i === 0) {
+          player[i].UpdatePosition(mouseX, mouseY);
+        } else {
+          player[i].UpdatePosition(player[i - 1].PlayerPosX, player[i - 1].PlayerPosY);
+        }
+        player[i].draw();
+      }
+
+      for (let i = 0; i < obstacles.length; i++) {
+        obstacles[i].update();
+        obstacles[i].draw();
+        for (let j = 0; j < player.length; j++) {
+          if (checkCollision(player[j], obstacles[i])) {
+            // 충돌 시 처리
+            decreasePlayerCount(j);
+            obstacles.splice(i, 1); // 충돌한 장애물 삭제
+            i--; // 배열 길이가 변경되었으므로 인덱스 조정
+            break; // 현재 장애물과 다음 플레이어와의 충돌 체크를 중단
+          }
+        }
+      }
+      if (checkCollision(player[0], food)) {
+        addNewPlayer(); // 먹이를 먹으면 원이 추가됨
+        food.generateFood(); // 새로운 먹이 생성
+        increaseScore(); // 점수 증가
+        playerCount ++;
+      }
+      const currentTime = Date.now();
+      const elapsedTime = (currentTime - startTime) / 1000;
+      drawScoreAndTime(score, elapsedTime);
+
+      if (playerCount <= 0) {
+        ctx.fillStyle = 'red';
+        ctx.font = '50px Arial';
+        ctx.fillText('Game Over', canvas.width / 2 - 100, canvas.height / 2);
+        return;
+      }
+    }
+
+    // 점수 증가 함수
+    function increaseScore() {
+        score += 1;
+    }
+
+    
+    // 원 개수 감소 함수
+    function decreasePlayerCount() {
+      if (playerCount > 0) {
+        playerCount -= 5;
+        for (let i = 0; i < 5; i++) {
+          player.pop();
+        }
+      }
+    }
+
+    // 점수와 시간 표시
+    function drawScoreAndTime(score, time) {
+        ctx.fillStyle = 'black';
+        ctx.font = '20px Arial';
+        ctx.fillText('Score: ' + score, 10, 30);
+        ctx.fillText('Time: ' + time.toFixed(2) + 's',10, 60);
+    }
+
+    function onMousemove(event) {
+      mouseX = event.clientX; // 마우스 커서의 X 좌표
+      mouseY = event.clientY; // 마우스 커서의 Y 좌표
+    }
+
+    // 새로운 플레이어 추가 함수
+    function addNewPlayer() {
+        const newPlayer = new PlayerBodyObject();
+        player.push(newPlayer);
+    }
+    // 충돌 검사 함수
+    function checkCollision(player, food) {
+      // player나 food가 정의되지 않았을 경우 오류 방지
+      if (!player || !food) {
+        return false;
+      }
+        const dx = player.PlayerPosX - food.x;
+        const dy = player.PlayerPosY - food.y;
+        const distance = Math.sqrt(dx * dx + dy * dy);
+
+        return distance < player.size + food.size;
+    }
+    // 먹이 객체 생성
+    const food = new Food();
+
+    // 실행 코드
+    setInterval(function () {
+        const shapes = ['circle', 'triangle', 'square'];
+        const randomShape = shapes[Math.floor(Math.random() * shapes.length)];
+        const randomSpeed = Math.floor(Math.random() * 4) + 1; // 장애물의 속도를 조정
+        const directions = ['right', 'left', 'up', 'down'];
+        const randomDirection = directions[Math.floor(Math.random() * directions.length)];
+
+        let randomX, randomY;
+
+        // 랜덤한 방향을 선택하고 캔버스 바깥에서 시작 지점을 설정
+        if (randomDirection === 'right') {
+            randomX = -20;
+            randomY = Math.random() * canvas.height;
+        } else if (randomDirection === 'left') {
+            randomX = canvas.width + 20;
+            randomY = Math.random() * canvas.height;
+        } else if (randomDirection === 'up') {
+            randomX = Math.random() * canvas.width;
+            randomY = canvas.height + 20;
+        } else if (randomDirection === 'down') {
+            randomX = Math.random() * canvas.width;
+            randomY = -20;
+        }
+        const newObstacle = new Obstacle(randomX, randomY, randomSpeed, randomShape, randomDirection);
+        obstacles.push(newObstacle);
+    }, 500);
+  </script>
+</body>
+</html>
